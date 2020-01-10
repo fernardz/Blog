@@ -1,0 +1,21 @@
+<html lang="en">
+<head>
+    <title>My Webpage</title>
+</head>
+<body>
+<h3>{{title}}</h3>
+
+<table>
+<tr>
+{% for h in headers %}
+<th>{{h}}</th>
+{% endfor %}
+{% for keys, row in data.iterrows() %}
+<tr>
+  {% for c in row %}
+    <td>{{c}}</td>
+  {% endfor %}
+</tr>
+{% endfor %}
+</table>
+</body>
