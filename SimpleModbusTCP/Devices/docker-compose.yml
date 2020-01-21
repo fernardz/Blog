@@ -1,0 +1,10 @@
+version: '3'
+services:
+  machine1:
+    image: loveofgod:latest
+    ports:
+      - 5021:5020
+  machine2:
+    image: loveofgod:latest
+    ports:
+      - 5022:5020
