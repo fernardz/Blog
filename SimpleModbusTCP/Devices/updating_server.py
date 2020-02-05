@@ -1,17 +1,3 @@
-#!/usr/bin/env python
-"""
-Pymodbus Server With Updating Thread
---------------------------------------------------------------------------
-
-This is an example of having a background thread updating the
-context while the server is operating. This can also be done with
-a python thread::
-
-    from threading import Thread
-
-    thread = Thread(target=updating_writer, args=(context,))
-    thread.start()
-"""
 # --------------------------------------------------------------------------- #
 # import the modbus libraries we need
 # --------------------------------------------------------------------------- #
