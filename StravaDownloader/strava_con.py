@@ -1,6 +1,7 @@
 import requests
 import json
 import datetime
+import keyring
 
 class Strava():
     def __init__(self):
@@ -12,8 +13,8 @@ class Strava():
             print("Credentials do not exist, need to creade creds.txt")
             exit()
         # Probably should be here, at least use keyring instead
-        self._client_id='43801'
-        self._client_secret='51cfd621f26e736c47193e9b4cece0d0d216db37'
+        self._client_id=keyring.get_password('Strava','client_id')#'43801'
+        self._client_secret=keyring.get_password('Strava','client_secret')#51cfd621f26e736c47193e9b4cece0d0d216db37'
         self.access_token=datastore['access_token']
         self.expires_at=datastore['expires_at']
         self.expires_in=datastore['expires_in']
@@ -26,7 +27,8 @@ class Strava():
             self.access_token=self.access_token
         else:
             token_str=self.refresh()
-            token_json=token_str
+            token_json=token_str.json()
+            print('NEW CREDS',token_json)
             self.store_creds(token_json)
             try:
                 self.access_token=token_json['access_token']
@@ -42,6 +44,7 @@ class Strava():
             return False
 
     def refresh(self):
+        print('Trying to Refresh Token')
         refresh_base_url="https://www.strava.com/api/v3/oauth/token"
         refresh_url=refresh_base_url+\
         '?client_id='+self._client_id+\
@@ -49,14 +52,22 @@ class Strava():
         '&grant_type=refresh_token'+\
         '&refresh_token='+self.refresh_token
         r=requests.post(refresh_url)
-        return r
+        if r.status_code=200:
+            return r
+        else:
+            print('Could not refresh token')
+            exit()
 
     def store_creds(self,r):
-        try:
-            with open(self.storage,'w') as outfile:
-                outfile.write(r.json())
-        except:
-            print("Issue with credentials")
+        print('JSON',r)
+        if len(r) > 0:
+            try:
+                with open(self.storage,'w') as outfile:
+                    json.dump(r,outfile)
+            except:
+                print("Issue with credentials")
+        else:
+            print("No Response")
 
     def get_activities(self, before='',after='',page=1,per_page=30):
         api_call_headers = {'Authorization': 'Bearer ' + self.access_token}
@@ -67,6 +78,11 @@ class Strava():
             else:
                 self.refresh()
                 r=requests.get(activities_url, headers=api_call_headers, verify=False)
+            if r.status_code==200:
+                return r
+            else:
+                print('Could not get Weight')
+                return r
             return r
         except:
             print('Something went wrong')
@@ -75,4 +91,4 @@ class Strava():
 if __name__=="__main__":
     strv=Strava()
     print(strv.access_token)
-    print(strv.get_activities().json())
+    print(json.dumps(strv.get_activities().json(), indent=4, sort_keys=True))

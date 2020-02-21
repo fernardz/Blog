@@ -1,3 +1,7 @@
 .ipynb_checkpoints
 Dev/*
 creds.txt
+StravaDownloader/creds_old.txt
+StravaDownloader/creds_fitbit.txt
+StravaDownloader/setup.py
+StravaDownloader/creds_fitbit_2.txt
