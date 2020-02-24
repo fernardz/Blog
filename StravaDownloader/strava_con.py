@@ -52,7 +52,7 @@ class Strava():
         '&grant_type=refresh_token'+\
         '&refresh_token='+self.refresh_token
         r=requests.post(refresh_url)
-        if r.status_code=200:
+        if r.status_code==200:
             return r
         else:
             print('Could not refresh token')
