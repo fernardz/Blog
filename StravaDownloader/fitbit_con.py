@@ -3,7 +3,9 @@ import json
 import datetime
 import keyring
 import base64
+import logging
 
+log=logging.getLogger()
 class Fitbit():
     def __init__(self):
         self.storage='creds_fitbit.txt'
@@ -11,7 +13,7 @@ class Fitbit():
             with open(self.storage,'r') as f:
                 datastore=json.load(f)
         except IOError:
-            print("Credentials do not exist, need to creade creds.txt")
+            log.critical("Credentials do not exist, need to creade creds.txt")
             exit()
         # Probably should be here, at least use keyring instead
         self._client_id=keyring.get_password('Fitbit','client_id')
@@ -30,13 +32,13 @@ class Fitbit():
         else:
             token_str=self.refresh()
             token_json=token_str.json()
-            print('NEW CREDS',token_json)
+            log.info('New Credentials Issued')
             self.store_creds(token_json)
             try:
                 self.access_token=token_json['access_token']
                 self.expires_in=token_json['expires_in']
             except:
-                print("Could not set new token values")
+                log.critical("Could not set new token values")
                 exit()
 
     def validate_initial_token(self):
@@ -51,8 +53,20 @@ class Fitbit():
                 self.expires_at=check['exp']
             else:
                 self.expires_at=0
+        elif r.status_code==401:
+            log.warning('Current token unauthorized')
+            check=r.json()
+            try:
+                type=check['errors'][0]['errorType']
+                if type=='expired_token':
+                    log.info('Token Expired')
+                    self.expires_at=0
+                else:
+                    log.critical('Error with token check '+str(type))
+            except:
+                log.critical('No Response, is connection working')
         else:
-            print('Bad stuff happening')
+            log.critical('Something went wrong')
 
     def valid_token(self):
         if self.expires_at>=datetime.datetime.utcnow().timestamp():
@@ -61,29 +75,29 @@ class Fitbit():
             return False
 
     def refresh(self):
-        print('Trying to Refresh Token')
+        log.info('Trying to Refresh Fitbit Token')
         refresh_base_url="https://api.fitbit.com/oauth2/token"
         auth_header={"Authorization":"Basic "+self.client_encoded}
         data={'grant_type':'refresh_token','refresh_token':self.refresh_token, 'expires_in':28800}
-        r=requests.post(refresh_url, headers=auth_header, data=data)
+        r=requests.post(refresh_base_url, headers=auth_header, data=data)
         if r.status_code==200:
             self.expires_in=r.json()['expires_in']
-            self.expires_at=datetime.datetime.utcnow().timestamp+int(self.expires_in)
+            #print(self.expires_in)
+            self.expires_at=datetime.datetime.utcnow().timestamp()+int(self.expires_in)
             return r
         else:
-            print('Could not refresh token')
+            log.critical('Could not refresh token')
             exit()
 
     def store_creds(self,r):
-        print('JSON',r)
         if len(r) > 0:
             try:
                 with open(self.storage,'w') as outfile:
                     json.dump(r,outfile)
             except:
-                print("Issue with credentials")
+                log.warning("Issue with credential storage")
         else:
-            print("No Response")
+            log.warning("No Response for Storage")
 
     def get_weight(self, date=datetime.datetime.now().strftime('%Y-%m-%d'),period='30d'):
         api_call_headers = {'Authorization': 'Bearer ' + self.access_token,
@@ -100,10 +114,10 @@ class Fitbit():
             if r.status_code==200:
                 return r
             else:
-                print('Could not get Weight')
+                log.warning('Could not get Weight')
                 return r
         except:
-            print('Something went wrong')
+            log.critical('Something went wrong')
             return 'API Problem'
 
     def get_calories(self, date=datetime.datetime.now().strftime('%Y-%m-%d'),period='30d'):
@@ -121,10 +135,10 @@ class Fitbit():
             if r.status_code==200:
                 return r
             else:
-                print('Could not get Weight')
+                log.warning('Could not get Weight')
                 return r
         except:
-            print('Something went wrong')
+            log.critical('Something went wrong')
             return 'API Problem'
 
 if __name__=="__main__":
