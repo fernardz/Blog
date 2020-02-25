@@ -2,6 +2,9 @@ import requests
 import json
 import datetime
 import keyring
+import logging
+
+log=logging.getLogger()
 
 class Strava():
     def __init__(self):
@@ -10,7 +13,7 @@ class Strava():
             with open(self.storage,'r') as f:
                 datastore=json.load(f)
         except IOError:
-            print("Credentials do not exist, need to creade creds.txt")
+            log.warning("Credentials do not exist, need to creade creds.txt")
             exit()
         # Probably should be here, at least use keyring instead
         self._client_id=keyring.get_password('Strava','client_id')#'43801'
@@ -28,13 +31,13 @@ class Strava():
         else:
             token_str=self.refresh()
             token_json=token_str.json()
-            print('NEW CREDS',token_json)
+            log.info('New Credentials Obtained',token_json)
             self.store_creds(token_json)
             try:
                 self.access_token=token_json['access_token']
                 self.expires_in=token_json['expires_in']
             except:
-                print("Could not set new token values")
+                log.warning("Could not set new token values")
                 exit()
 
     def valid_token(self):
@@ -44,7 +47,7 @@ class Strava():
             return False
 
     def refresh(self):
-        print('Trying to Refresh Token')
+        log.info('Trying to Refresh Token')
         refresh_base_url="https://www.strava.com/api/v3/oauth/token"
         refresh_url=refresh_base_url+\
         '?client_id='+self._client_id+\
@@ -55,7 +58,7 @@ class Strava():
         if r.status_code==200:
             return r
         else:
-            print('Could not refresh token')
+            log.critical('Could not refresh token')
             exit()
 
     def store_creds(self,r):
@@ -65,9 +68,9 @@ class Strava():
                 with open(self.storage,'w') as outfile:
                     json.dump(r,outfile)
             except:
-                print("Issue with credentials")
+                log.warning("Issue with credentials")
         else:
-            print("No Response")
+            log.warning("No Response to Token Storage")
 
     def get_activities(self, before='',after='',page=1,per_page=30):
         api_call_headers = {'Authorization': 'Bearer ' + self.access_token}
@@ -79,13 +82,14 @@ class Strava():
                 self.refresh()
                 r=requests.get(activities_url, headers=api_call_headers, verify=False)
             if r.status_code==200:
+                log.info('Activities obtained')
                 return r
             else:
-                print('Could not get Weight')
+                log.warning('Could not get activities')
                 return r
             return r
         except:
-            print('Something went wrong')
+            log.critical('Something went wrong')
             return('API Problem')
 
 if __name__=="__main__":
